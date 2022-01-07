@@ -128,6 +128,6 @@ while im < 25:
     line=line+1
   
 
-plt.text(-210, 90, 'CSO volume (10$^{3}$ m$^{3}$)',rotation=90,fontdict=font3)
+plt.text(-210, 90, 'CSO and flooding volume (10$^{3}$ m$^{3}$)',rotation=90,fontdict=font3)
 
 fig.savefig('5.5.2.png', bbox_inches='tight', dpi=500)

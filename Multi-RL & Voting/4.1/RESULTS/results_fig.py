@@ -2,7 +2,7 @@
 import pandas as pd
 import matplotlib.pyplot as plt
 
-testid='test'
+testid='real'
 
 dfa2c=pd.read_csv('./Final result/a2c_test_result/'+testid+' a2cflooding_vs_t.csv').values
 dfddqn=pd.read_csv('./Final result/ddqn_test_result/'+testid+' ddqnflooding_vs_t.csv').values
@@ -35,7 +35,7 @@ for im in range(1,5):
     
     plt.xticks([0,48],['08:00','16:00'])
     plt.xlabel('time',font2)
-    plt.ylabel('CSO volume (10$^{3}$ m$^{3}$)',font2)
+    plt.ylabel('CSO and flooding volume (10$^{3}$ m$^{3}$)',font2)
 
     plt.legend(prop=font1)
 
