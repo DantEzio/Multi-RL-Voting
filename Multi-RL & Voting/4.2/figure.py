@@ -11,7 +11,7 @@ ps=['1','2']
 
 font1 = {'family' : 'Times New Roman',
          'weight' : 'normal',
-         'size'   : 8,}
+         'size'   : 12,}
 
 font2 = {'family' : 'Times New Roman',
          'weight' : 'normal',
@@ -56,7 +56,9 @@ for lab in range(len(labels)):
         st='Variance value of Water levels (m)'
     
     plt.ylabel(st,font2)
-    plt.xticks([0.2,1.2,2.2,3.2,4.2,5.2,6.2,7.2,8.2],['Rain1','Rain2','Rain3','Rain4','Rain5','Rain6','Rain7','Rain8',' '])
+    plt.yticks(fontsize=15)
+    plt.xticks([0.2,1.2,2.2,3.2,4.2,5.2,6.2,7.2,8.2],
+               ['Rain1','Rain2','Rain3','Rain4','Rain5','Rain6','Rain7','Rain8',' '],fontsize=15)
 
     plt.legend(prop=font1)
 

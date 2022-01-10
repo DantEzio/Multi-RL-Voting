@@ -43,7 +43,7 @@ font1 = {'family' : 'Times New Roman',
 
 font2 = {'family' : 'Times New Roman',
          'weight' : 'normal',
-         'size'   : 18,}
+         'size'   : 15,}
 
 fig = plt.figure(figsize=(20,16))
 
@@ -56,10 +56,9 @@ for it in range(8):
     plt.scatter(x,dd,marker='o',linewidths=1)
     plt.subplots_adjust(hspace=0.3, wspace=0.3)
 
-    plt.xticks([0,dd.shape[0]],['8:00','16:00'],fontsize=10)
+    plt.xticks([0,dd.shape[0]],['0','480'],fontsize=20)
     plt.title(pplabel1[it],fontdict=font1)
-    
-    plt.yticks([1,2,3,4,5],['DQN','DDQN','PPO1','PPO2','A2C'],fontsize=10)
+    plt.yticks([1,2,3,4,5],['DQN','DDQN','PPO1','PPO2','A2C'],fontsize=20)
 
 #plt.text(-320,4,'With QVI', fontdict=font0,rotation=90)
 #plt.text(-320,15,'Without QVI', fontdict=font0,rotation=90)

@@ -43,7 +43,7 @@ font2 = {'family' : 'Times New Roman',
 
 font3 = {'family' : 'Times New Roman',
          'weight' : 'normal',
-         'size'   : 35,}
+         'size'   : 25,}
 
 
 def draw(data,dfop,dfhc):
@@ -93,8 +93,9 @@ while im < 25:
     if im<5:
         plt.title('Rain'+str(im),fontdict=font3)
     if im>20:
-        plt.xlabel('time',font2)
-    plt.xticks([0,48],['08:00','16:00'])
+        plt.xlabel('Time (minutes)',font2)
+    plt.xticks([0,48],['0','480'],fontsize=15)
+    plt.yticks(fontsize=15)
     plt.ylabel(ytitle,font2)
     im+=1
     
@@ -103,31 +104,33 @@ while im < 25:
     if im<5:
         plt.title('Rain'+str(im),fontdict=font3)
     if im>20:
-        plt.xlabel('time',font2)
+        plt.xlabel('Time (minutes)',font2)
     im+=1
-    plt.xticks([0,48],['08:00','16:00'])
+    plt.xticks([0,48],['0','480'],fontsize=15)
+    plt.yticks(fontsize=15)
     
     plts=fig.add_subplot(6,4,im)
     draw(data[2],dfop[:,2],dfhc[:,2])
     if im<5:
         plt.title('Rain'+str(im),fontdict=font3)
     if im>20:
-        plt.xlabel('time',font2)
+        plt.xlabel('Time (minutes)',font2)
     im+=1
-    plt.xticks([0,48],['08:00','16:00'])
+    plt.xticks([0,48],['0','480'],fontsize=15)
+    plt.yticks(fontsize=15)
     
     plts=fig.add_subplot(6,4,im)
     draw(data[3],dfop[:,3],dfhc[:,3])
     if im<5:
         plt.title('Rain'+str(im),fontdict=font3)
     if im>20:
-        plt.xlabel('time',font2)
+        plt.xlabel('Time (minutes)',font2)
     im+=1
-    plt.xticks([0,48],['08:00','16:00'])
+    plt.xticks([0,48],['0','480'],fontsize=15)
+    plt.yticks(fontsize=15)
     
     line=line+1
   
-
-plt.text(-210, 90, 'CSO and flooding volume (10$^{3}$ m$^{3}$)',rotation=90,fontdict=font3)
+plt.text(-210, 90, 'The sum of CSO and flooding volume (10$^{3}$ m$^{3}$)',rotation=90,fontdict=font3)
 
 fig.savefig('5.5.2.png', bbox_inches='tight', dpi=500)

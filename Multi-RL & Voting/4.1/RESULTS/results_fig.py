@@ -2,7 +2,7 @@
 import pandas as pd
 import matplotlib.pyplot as plt
 
-testid='real'
+testid='test'
 
 dfa2c=pd.read_csv('./Final result/a2c_test_result/'+testid+' a2cflooding_vs_t.csv').values
 dfddqn=pd.read_csv('./Final result/ddqn_test_result/'+testid+' ddqnflooding_vs_t.csv').values
@@ -15,7 +15,7 @@ dfop=pd.read_csv('./Final result/opt_test_result/'+testid+' optflooding_vs_t.csv
 
 font1 = {'family' : 'Times New Roman',
          'weight' : 'normal',
-         'size'   : 10,}
+         'size'   : 12,}
 
 font2 = {'family' : 'Times New Roman',
          'weight' : 'normal',
@@ -33,10 +33,11 @@ for im in range(1,5):
     plt.plot(dfhc[:,im-1],'k.-',label='Water level system')
     plt.plot(dfop[:,im-1],'k',label='Optimization model')
     
-    plt.xticks([0,48],['08:00','16:00'])
-    plt.xlabel('time',font2)
-    plt.ylabel('CSO and flooding volume (10$^{3}$ m$^{3}$)',font2)
-
+    plt.xticks([0,48],['0','480'],fontsize=15)
+    plt.xlabel('Time (minutes)',font2)
+    plt.ylabel('The sum of CSO volume (10$^{3}$ m$^{3}$)',font2)
+    plt.yticks(fontsize=15)
+    
     plt.legend(prop=font1)
 
 fig.savefig(testid+'5.1.1.png', bbox_inches='tight', dpi=500)
