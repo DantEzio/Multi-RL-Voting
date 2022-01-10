@@ -77,8 +77,8 @@ for name in file_name:
         plt.ylabel('RCI',fontdict=font1)
     
     # 增加刻度
-    plt.xticks(x, [int(xt) for xt in x])
-    
+    plt.xticks(x, [int(xt) for xt in x],fontsize=15)
+    plt.yticks(fontsize=15)
     # 设置图例
     n=labels[it]
     print(n)

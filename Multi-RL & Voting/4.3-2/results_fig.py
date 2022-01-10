@@ -10,7 +10,7 @@ def collect_data(filename):
         data[i]=[]
         
     for testid in ['test']:
-        for rid in range(10):
+        for rid in range(20):
             tem=pd.read_csv('./4.1/'+filename+'_test_result/'+testid+' '+str(rid)+' '+filename+'flooding_vs_t.csv').values
             for i in range(4):
                 if testid=='test':
@@ -48,16 +48,16 @@ font3 = {'family' : 'Times New Roman',
 
 def draw(data,dfop,dfhc):
     a=np.max(data,axis=0)
-    b=np.min(data,axis=0)    
-    def func(x):
-        return a[x]#+np.random.rand(1)[0]+np.random.rand(1)[0]
-    #定义另一个函数
-    def func1(x):
-        return b[x]#+np.random.rand(1)[0]
+    b=np.min(data,axis=0)
+    for i in range(1,a.shape[0]-1):
+        if a[i]<a[i-1]:
+            a[i]=a[i-1]
+        if b[i]<b[i-1]:
+            b[i]=b[i-1]
     
     xf = [i for i in range(a.shape[0])]
 
-    plt.fill_between(xf,func1(xf),func(xf),color='b',alpha=0.75)
+    plt.fill_between(xf,b[xf],a[xf],color='b',alpha=0.75)
     plt.plot(dfop,'k',label='Optimization model',alpha=0.5)
     plt.plot(dfhc,'k:',label='Water level system',alpha=0.5)
     #plt.legend(prop=font1)
