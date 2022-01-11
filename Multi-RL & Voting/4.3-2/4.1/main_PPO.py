@@ -4,6 +4,16 @@ import tensorflow as tf
 
 
 if __name__=='__main__':
+    '''
+    date_time=['08:00','08:10','08:20','08:30','08:40','08:50',\
+               '09:00','09:10','09:20','09:30','09:40','09:50',\
+               '10:00','10:10','10:20','10:30','10:40','10:50',\
+               '11:00','11:10','11:20','11:30','11:40','11:50','12:00']
+    date_t=[0,10,20,30,40,50,\
+            60,70,80,90,100,110,\
+            120,130,140,150,160,170,\
+            180,190,200,210,220,230,240]
+    '''
     
     date_time=['08:00','08:10','08:20','08:30','08:40','08:50',\
                '09:00','09:10','09:20','09:30','09:40','09:50',\
@@ -18,6 +28,7 @@ if __name__=='__main__':
     date_t=[]
     for i in range(len(date_time)):
         date_t.append(int(i*10))
+        
     
     AFI=False
     num_rain=4
@@ -29,27 +40,17 @@ if __name__=='__main__':
     with g_3.as_default():
         model3 = PPO.PPO(env,step, 240, num_rain, 'ppo1', raindata='test')
         model3.load_model()
-        model3.train(True)
-        r=model3.test(test_num)
-    
-    g_31 = tf.Graph()
-    with g_31.as_default():
-        model3 = PPO.PPO(env,step, 240, num_rain, 'ppo1',raindata='real')
-        model3.load_model()
-        r=model3.test(test_num)
+        #history = model3.train(True)
+        for rid in range(20):
+            r=model3.test(test_num,rid)
     
     env=env_SWMM.env_SWMM(date_time, date_t,AFI)
     g_4 = tf.Graph()
     with g_4.as_default():
         model4 = PPO.PPO(env,step, 240, num_rain, 'ppo2',raindata='test')
         model4.load_model()
-        model4.train(True)
-        r=model4.test(test_num)
-    
-    g_41 = tf.Graph()
-    with g_41.as_default():    
-        model4 = PPO.PPO(env,step, 240, num_rain, 'ppo2', raindata='real')
-        model4.load_model()
-        r=model4.test(test_num)
+        #history = model4.train(True)
+        for rid in range(20):
+            r=model4.test(test_num,rid)
 
     

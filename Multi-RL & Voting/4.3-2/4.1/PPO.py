@@ -9,7 +9,10 @@ class PPO:
         self.ep = ep
         
         self.action_size=8
+        
         self.log = 'model/{}_log'.format(t)
+
+        #self.env = gym.make('Pendulum-v0')
         self.env = env
         self.batch = self.env.T
         self.bound_high = np.array([1 for _ in range(self.action_size)])
@@ -20,16 +23,17 @@ class PPO:
         self.C_LR = 0.001
         self.A_UPDATE_STEPS = 10
         self.C_UPDATE_STEPS = 10
-
-        # KL penalty, d_target、β for ppo1
         self.kl_target = 0.01
         self.lam = 0.5
         self.epsilon = 0.2
         self.num_rain=num_rain
-        self.sess = tf.compat.v1.Session()
 
+        self.sess = tf.compat.v1.Session()
+        
+        #tf.reset_default_graph()
         self.build_model()
         self.sess.run(tf.compat.v1.global_variables_initializer())
+        
         self.rainData=np.loadtxt('./sim/trainRainFile.txt',delimiter=',')#读取训练降雨数据
         self.raindata=raindata
         if raindata=='test':
@@ -45,8 +49,6 @@ class PPO:
         
 
     def _build_critic(self):
-        """critic model.
-        """
         with tf.compat.v1.variable_scope('critic_ppo',reuse=tf.compat.v1.AUTO_REUSE):
             x = tf.layers.dense(self.states, 100, tf.nn.relu,kernel_initializer=tf.zeros_initializer(),bias_initializer=tf.zeros_initializer())
 
@@ -54,8 +56,6 @@ class PPO:
             self.advantage = self.dr - self.v
 
     def _build_actor(self, name, trainable):
-        """actor model.
-        """
         with tf.compat.v1.variable_scope(name,reuse=tf.compat.v1.AUTO_REUSE):
             x = tf.layers.dense(self.states, 100, tf.nn.relu, 
                                 trainable=trainable,kernel_initializer=tf.zeros_initializer(), 
@@ -91,6 +91,7 @@ class PPO:
         with tf.compat.v1.variable_scope('loss',reuse=tf.compat.v1.AUTO_REUSE):
             # critic loss
             self.closs = tf.reduce_mean(tf.square(self.advantage))
+
             # actor loss
             with tf.compat.v1.variable_scope('surrogate'):
                 ratio = tf.exp(nd.log_prob(self.action) - old_nd.log_prob(self.action))
@@ -125,6 +126,7 @@ class PPO:
         
         state = state[np.newaxis, :]
         action = self.sess.run(self.sample_op, {self.states: state})[0]
+
         #对输出的action做限制
         for i in range(action.shape[0]):
             if action[i]<0.011:
@@ -155,8 +157,6 @@ class PPO:
         adv = self.sess.run(self.advantage,
                             {self.states: states,
                              self.dr: dr})
-
-        # update actor
         if self.t == 'ppo1':
             # run ppo1 loss
             for _ in range(self.A_UPDATE_STEPS):
@@ -179,15 +179,12 @@ class PPO:
                                self.action: action,
                                self.adv: adv})
 
-        # update critic
         for _ in range(self.C_UPDATE_STEPS):
             self.sess.run(self.ctrain_op,
                           {self.states: states,
                            self.dr: dr})
 
     def train(self,save):
-        """train method.
-        """
         for j in range(self.ep):
             for i in range(self.num_rain):
                 print('steps: ',j,' rain:',i)
@@ -204,6 +201,7 @@ class PPO:
                     observation = next_observation
                     
                     if done:
+                        dr=self.discount_reward(states, rewards, next_observation)
                         break
                     
             states = np.array(states)
@@ -217,25 +215,24 @@ class PPO:
             saver=tf.compat.v1.train.Saver()
             sp=saver.save(self.sess,'./'+self.t+'_test_result/model/'+self.t+'_model.ckpt')
             print("model saved:",sp)
-
+            
+        return history
+    
+    
     def load_model(self):
         saver=tf.compat.v1.train.Saver()
         saver.restore(self.sess,'./'+self.t+'_test_result/model/'+self.t+'_model.ckpt')
     
-    def test(self,test_num):
-        dr=[]
-        flooding_logs,hc_flooding_logs=[],[]
+    def test(self,test_num,repeatid):
+        flooding_logs=[]
         for i in range(test_num):
-            print('test'+str(i))
+            print('repeat: ',repeatid,' test:'+str(i))
             
             observation,flooding = self.env.reset(self.testRainData[i],i,False)
-            #用于对比的HC,HC有RLC同步，共用一个iten计数器，
-            #所以HC的reset要紧跟RLC的reset，HC的step要紧跟RLC的step，保证iten变量同步
-            hc_name='./'+self.t+'_test_result/HC/HC'+str(i)
-            self.env.copy_result(hc_name+'.inp',self.env.orf_rain+'.inp')
-            hc_flooding = self.env.reset_HC(hc_name)
+            X=np.random.uniform(0.95,1.05,size=observation.shape)
+            observation*=X
             
-            flooding_log,hc_flooding_log=[flooding],[hc_flooding]
+            flooding_log=[flooding]
             
             states, actions, rewards = [], [], []
             
@@ -243,56 +240,44 @@ class PPO:
                 a = self.choose_action(observation)
                 #print(a)
                 next_observation, reward, done, _, flooding = self.env.step(a,self.testRainData[i])
-                #对比HC,也记录HC每一步的flooding
-                _, hc_flooding = self.env.step_HC(hc_name)
-                
                 states.append(observation)
                 actions.append(a)
-                
                 flooding_log.append(flooding)
-                hc_flooding_log.append(hc_flooding)
-                
                 rewards.append(reward)
-
                 observation = next_observation
-                    
+                X=np.random.uniform(0.95,1.05,size=observation.shape)
+                observation*=X
+                
                 if done:
                     states = np.array(states)
                     actions = np.array(actions)
                     rewards = np.array(rewards)
                     d_reward = self.discount_reward(states, rewards, next_observation)
                     states, actions, rewards = [], [], []
-                    dr.append(d_reward)
-                    
                     break
             #一场降雨结束后记录一次flooding过程线
             flooding_logs.append(flooding_log)
-            hc_flooding_logs.append(hc_flooding_log)
-            
-            #对比HC,也记录HC每一步的flooding
-            #self.env.copy_result('./'+self.t+'_test_result/HC/HC'+str(i)+'.inp',self.env.orf_rain+'.inp')
-            #tem_etime=self.env.date_time[1]
-            #set_datetime.set_date(self.env.sdate,self.env.edate,self.env.stime,tem_etime,'./'+self.t+'_test_result/HC/HC'+str(i)+'.inp')
-            #self.env.simulation('./'+self.t+'_test_result/HC/HC'+str(i)+'.inp')
             
             #save RLC .inp and .rpt
             if self.raindata=='test':
                 k=0
             else:
                 k=4
-            sout='./'+self.t+'_test_result/'+str(i+k)+'.rpt'
+            sout='./'+self.t+'_test_result/'+str(i+k)+' '+str(repeatid)+' '+'.rpt'
             sin=self.env.staf+'.rpt'
             self.env.copy_result(sout,sin)
-            sout='./'+self.t+'_test_result/'+str(i+k)+'.inp'
+            sout='./'+self.t+'_test_result/'+str(i+k)+' '+str(repeatid)+' '+'.inp'
             sin=self.env.staf+'.inp'
             self.env.copy_result(sout,sin)
-            #self.env.copy_result(sout,sin)
-            #保存所有降雨的flooding过程线
             df = pd.DataFrame(np.array(flooding_logs).T)
-            df.to_csv('./'+self.t+'_test_result/'+self.raindata+' '+self.t+'flooding_vs_t.csv', index=False, encoding='utf-8')
-            df = pd.DataFrame(np.array(hc_flooding_logs).T)
-            df.to_csv('./'+self.t+'_test_result/'+self.raindata+' '+self.t+'hc_flooding_vs_t.csv', index=False, encoding='utf-8')
-        return dr
+            df.to_csv('./'+self.t+'_test_result/'+self.raindata+' '+str(repeatid)+' '+self.t+'flooding_vs_t.csv', index=False, encoding='utf-8')
+        
+
+    def save_history(self, history, name):
+        #name = os.path.join('history', name)
+
+        df = pd.DataFrame.from_dict(history)
+        df.to_csv(name, index=False, encoding='utf-8')
 
 
 if __name__ == '__main__':

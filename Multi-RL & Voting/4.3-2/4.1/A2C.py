@@ -73,6 +73,8 @@ class Critic(object):
                 inputs=self.s,
                 units=20,  # number of hidden units
                 activation=tf.nn.relu,  # None
+                # have to be linear to make sure the convergence of actor.
+                # But linear approximator seems hardly learns the correct Q.
                 kernel_initializer=tf.random_normal_initializer(0., .1),  # weights
                 bias_initializer=tf.constant_initializer(0.1),  # biases
                 name='l1'
@@ -112,7 +114,6 @@ class A2C(object):
         GAMMA = 0.9     # reward discount in TD error
         LR_A = 0.001    # learning rate for actor
         LR_C = 0.001     # learning rate for critic
-        
         # Superparameters
         self.MAX_EPISODE = MAX_EPISODE
         self.MAX_EP_STEPS = MAX_EP_STEPS   # maximum time step in one episode
@@ -121,6 +122,8 @@ class A2C(object):
         self.LR_C = LR_C     # learning rate for critic
         
         self.env = env#gym.make('MountainCar-v0')
+        #env.seed(1)  # reproducible
+        #env = env.unwrapped
         self.t='a2c'
         self.N_F = env.observation_space#.shape[0]   #状态空间的维度
         self.N_A = self.action_table.shape[0]               #动作空间的维度
@@ -128,8 +131,9 @@ class A2C(object):
         
         
         self.sess = tf.compat.v1.Session()
+        #tf.reset_default_graph()
         self.actor = Actor(self.sess, n_features=self.N_F, n_actions=self.N_A, lr=self.LR_A)
-        self.critic = Critic(self.sess, n_features=self.N_F, GAMMA=self.GAMMA, lr=self.LR_C)
+        self.critic = Critic(self.sess, n_features=self.N_F, GAMMA=self.GAMMA, lr=self.LR_C)     # we need a good teacher, so the teacher should learn faster than the actor
         self.sess.run(tf.compat.v1.global_variables_initializer())   
         
         self.rainData=np.loadtxt('./sim/trainRainFile.txt',delimiter=',')#读取训练降雨数据
@@ -146,12 +150,18 @@ class A2C(object):
         
 
     def train(self,save):
+        #现在将训练过程改为：一次性采样所有降雨（数量num_rain），
+        #之后将所有降雨过程的state、reward、action用于训练
+        history = {'episode': [], 'Episode_reward': []}
+        #if self.OUTPUT_GRAPH:
+        #    tf.summary.FileWriter("logs/", self.sess.graph)
+
         for j in range(self.MAX_EPISODE):     
             states1, states2, actions, track_r = [], [], [], []
             for i in range(self.num_rain):
                 print('Steps: ',j,' Rain: ',i)
                 s,_ =self.env.reset(self.rainData[i],i,True)
-                t = 0                
+                t = 0
                 while True:
                     ap = self.actor.choose_action(s)
                     a = self.action_table[ap,:].tolist()
@@ -160,12 +170,14 @@ class A2C(object):
                     states1.append(s)
                     states2.append(s_)
                     actions.append(ap)
+                    #td_error = self.critic.learn(s, r, s_)  # gradient = grad[r + gamma * V(s_) - V(s)]
+                    #self.actor.learn(s, a, td_error)     # true_gradient = grad[logPi(s,a) * td_error]
                     s = s_
                     t += 1
                     
                     if done:
                         break
-
+            
             td_error = self.critic.learn(np.array(states1)[0], np.array(track_r)[0], np.array(states2)[0])  # gradient = grad[r + gamma * V(s_) - V(s)]
             self.actor.learn(np.array(states1)[0], np.array(actions)[0], td_error)     # true_gradient = grad[logPi(s,a) * td_error]
             #保存模型
@@ -173,25 +185,23 @@ class A2C(object):
                 saver=tf.compat.v1.train.Saver()
                 sp=saver.save(self.sess,'./'+self.t+'_test_result/model/'+self.t+'_model.ckpt')
                 print("model saved:",sp)
+        return history
 
     def load_model(self):
         saver=tf.compat.v1.train.Saver()
         saver.restore(self.sess,'./'+self.t+'_test_result/model/'+self.t+'_model.ckpt')
 
 
-    def test(self,test_num):
-        
-        dr=[]
-        flooding_logs,hc_flooding_logs=[],[]
+    def test(self,test_num,repeatid):
+        flooding_logs=[]
         for i in range(test_num):
-            print('test'+str(i))
+            print('repeat: ',repeatid,' test:'+str(i))
             s,flooding =self.env.reset(self.testRainData[i],i,False)
             
-            hc_name='./'+self.t+'_test_result/HC/HC'+str(i)
-            self.env.copy_result(hc_name+'.inp',self.env.orf_rain+'.inp')
-            hc_flooding = self.env.reset_HC(hc_name)
+            X=np.random.uniform(0.95,1.05,size=s.shape)
+            s*=X
             
-            flooding_log,hc_flooding_log=[flooding],[hc_flooding]
+            flooding_log=[flooding]
             
             t = 0
             track_r = []
@@ -200,11 +210,8 @@ class A2C(object):
                 a = self.action_table[ap,:].tolist()
                 s_, r, done, info, flooding = self.env.step(a,self.testRainData[i])
                 
-                #对比HC,也记录HC每一步的flooding
-                _, hc_flooding = self.env.step_HC(hc_name)
                 flooding_log.append(flooding)
-                hc_flooding_log.append(hc_flooding)
-        
+                
                 track_r.append(r)
                 
                 s = s_
@@ -216,38 +223,22 @@ class A2C(object):
             
             #一场降雨结束后记录一次flooding过程线
             flooding_logs.append(flooding_log)
-            hc_flooding_logs.append(hc_flooding_log)
+            
             #save RLC .inp and .rpt
             if self.raindata=='test':
                 k=0
             else:
                 k=4
-            sout='./'+self.t+'_test_result/'+str(i+k)+'.rpt'
+            sout='./'+self.t+'_test_result/'+str(i+k)+' '+str(repeatid)+' '+'.rpt'
             sin=self.env.staf+'.rpt'
             self.env.copy_result(sout,sin)
-            sout='./'+self.t+'_test_result/'+str(i+k)+'.inp'
+            sout='./'+self.t+'_test_result/'+str(i+k)+' '+str(repeatid)+' '+'.inp'
             sin=self.env.staf+'.inp'
             self.env.copy_result(sout,sin)
-            #self.env.copy_result(sout,sin)#保存所有降雨的flooding过程线
             df = pd.DataFrame(np.array(flooding_logs).T)
-            df.to_csv('./'+self.t+'_test_result/'+self.raindata+' '+self.t+'flooding_vs_t.csv', index=False, encoding='utf-8')
-            df = pd.DataFrame(np.array(hc_flooding_logs).T)
-            df.to_csv('./'+self.t+'_test_result/'+self.raindata+' '+self.t+'hc_flooding_vs_t.csv', index=False, encoding='utf-8')
-        return dr
-            
-            
-
-if __name__=='__main__':
-    # Superparameters
-    OUTPUT_GRAPH = False # 是否保存模型（网络结构）
-    MAX_EPISODE = 100
-    DISPLAY_REWARD_THRESHOLD = 200  # renders environment if total episode reward is greater then this threshold
-    MAX_EP_STEPS = 100000   # maximum time step in one episode
-    RENDER = True  # rendering wastes time
-    GAMMA = 0.9     # reward discount in TD error
-    LR_A = 0.1    # learning rate for actor
-    LR_C = 0.1     # learning rate for critic
+            df.to_csv('./'+self.t+'_test_result/'+self.raindata+' '+str(repeatid)+' '+self.t+'flooding_vs_t.csv', index=False, encoding='utf-8')
     
-    env = gym.make('MountainCar-v0')
-    model=A2C(MAX_EPISODE,MAX_EP_STEPS,env)
-    model.train()
+    def save_history(self, history, name):
+    
+        df = pd.DataFrame.from_dict(history)
+        df.to_csv(name, index=False, encoding='utf-8')

@@ -16,11 +16,10 @@ class DDQN:
         ACTION_SPACE = self.action_table.shape[0]
         print('table shape:',self.action_table.shape)
         
-        
         n_features=5
         memory_size= 150000
         e_greedy_increment=0.001
-        e_greedy=0.001
+        e_greedy=0.8
         reward_decay=0.01
         learning_rate=0.001
         replace_target_iter=10
@@ -37,7 +36,7 @@ class DDQN:
         self.memory_size = memory_size
         self.batch_size = batch_size
         self.epsilon_increment = e_greedy_increment
-        self.epsilon = 0 if e_greedy_increment is not None else self.epsilon_max
+        self.epsilon = e_greedy if e_greedy_increment is not None else self.epsilon_max
         self.num_rain=num_rain
 
         self.traing_step=step
@@ -48,7 +47,6 @@ class DDQN:
             self.dueling = False     # decide to use dueling DQN or not
 
         self.learn_step_counter = 0
-        #self.memory = np.zeros((self.memory_size, n_features*2+2))
         self.memory=[]
         self._build_net()
         t_params = tf.compat.v1.get_collection('target_net_params')
@@ -63,7 +61,8 @@ class DDQN:
         if output_graph:
             tf.summary.FileWriter("logs/", self.sess.graph)
         self.cost_his = []
-
+        
+        #self.rainData=np.loadtxt('./sim/real_rain_data.txt',delimiter=' ')*20
         self.rainData=np.loadtxt('./sim/trainRainFile.txt',delimiter=',')#读取训练降雨数据
         self.raindata=raindata
         if raindata=='test':
@@ -106,6 +105,7 @@ class DDQN:
 
             return out
 
+        # ------------------ build evaluate_net ------------------
         self.s = tf.compat.v1.placeholder(tf.float32, [None, self.n_features], name='s')  # input
         self.q_target = tf.compat.v1.placeholder(tf.float32, [None, self.n_actions], name='Q_target')  # for calculating loss
         with tf.compat.v1.variable_scope('eval_net',reuse=tf.compat.v1.AUTO_REUSE):
@@ -120,6 +120,7 @@ class DDQN:
         with tf.compat.v1.variable_scope('train',reuse=tf.compat.v1.AUTO_REUSE):
             self._train_op = tf.compat.v1.train.RMSPropOptimizer(self.lr).minimize(self.loss)
 
+        # ------------------ build target_net ------------------
         self.s_ = tf.compat.v1.placeholder(tf.float32, [None, self.n_features], name='s_')    # input
         with tf.compat.v1.variable_scope('target_net',reuse=tf.compat.v1.AUTO_REUSE):
             c_names = ['target_net_params', tf.compat.v1.GraphKeys.GLOBAL_VARIABLES]
@@ -130,12 +131,13 @@ class DDQN:
         if not hasattr(self, 'memory_counter'):
             self.memory_counter = 0
         
-        transition = np.hstack((s, [a, r], s_))     
+        transition = np.hstack((s, [a, r], s_))
         self.memory.append(transition)
         self.memory_counter += 1
         
 
     def choose_action(self, observation):
+        #observation = observation[np.newaxis, :]
         if np.random.uniform() < self.epsilon:  # choosing action
             actions_value = self.sess.run(self.q_eval, feed_dict={self.s: [observation]})
             action = np.argmax(actions_value)
@@ -144,6 +146,7 @@ class DDQN:
         return action
     
     def choose_action_test(self, observation):
+        #observation = observation[np.newaxis, :]
         actions_value = self.sess.run(self.q_eval, feed_dict={self.s: [observation]})
         action = np.argmax(actions_value)
         return action
@@ -159,8 +162,12 @@ class DDQN:
         q_eval = self.sess.run(self.q_eval, {self.s: batch_memory[:,:self.n_features]})
 
         q_target = q_eval.copy()
+
         batch_index = np.arange(self.batch_size, dtype=np.int32)
         reward = batch_memory[:, self.n_features + 1]
+
+        #print(q_target[[1,2]])
+        #q_target[batch_index, eval_act_index] = reward + self.gamma * np.max(q_next, axis=1)
         q_target[batch_index] = np.reshape(reward + self.gamma * np.max(q_next, axis=1),(self.batch_size,1))
         
         _, self.cost = self.sess.run([self._train_op, self.loss],
@@ -172,21 +179,19 @@ class DDQN:
         self.learn_step_counter += 1
         
     def train(self,save):
-        #一次性采样所有降雨（数量num_rain），
-        #之后将所有降雨过程的state、reward、action用于训练
         for j in range(self.traing_step):
             total_steps = 0
             for i in range(self.num_rain):
                 print('training steps:',j)
                 print('sampling number:',i)
                 observation, _ = self.env.reset(self.rainData[i],i,True)
-                
                 while True:
+                    # if total_steps-MEMORY_SIZE > 9000: env.render()
+                    #print('ob=',observation)
                     tema = self.choose_action(observation)
-                    action = self.action_table[tema,:].tolist()                    
+                    action = self.action_table[tema,:].tolist()
                     observation_, reward, done, info, _ = self.env.step(action,self.rainData[i])
                     self.store_transition(observation, tema, reward, observation_)
-         
                     observation = observation_
                     total_steps += 1
                 
@@ -200,110 +205,59 @@ class DDQN:
             if save:
                 saver=tf.compat.v1.train.Saver()
                 sp=saver.save(self.sess,'./'+self.t+'_test_result/model/'+self.t+'_model.ckpt')
-                print("model saved:",sp)
-  
+                print("model saved:",sp)   
+    
     def load_model(self):
         saver=tf.compat.v1.train.Saver()
         saver.restore(self.sess,'./'+self.t+'_test_result/model/'+self.t+'_model.ckpt')
             
-    def test(self,test_num):
+    
+    def test(self,test_num,repeatid):
         
         dr=[]
-        flooding_logs,hc_flooding_logs=[],[]
+        flooding_logs=[]
         for i in range(test_num):
-            print('test',i)
+            print('repeat: ', repeatid,' test: ',i)
             
             observation, flooding = self.env.reset(self.testRainData[i],i,False)
-            #用于对比的HC,HC有RLC同步，共用一个iten计数器，
-            #所以HC的reset要紧跟RLC的reset，HC的step要紧跟RLC的step，保证iten变量同步
-            hc_name='./'+self.t+'_test_result/HC/HC'+str(i)
-            self.env.copy_result(hc_name+'.inp',self.env.orf_rain+'.inp')
-            hc_flooding = self.env.reset_HC(hc_name)
+            X=np.random.uniform(0.95,1.05,size=observation.shape)
+            observation*=X
             
-            flooding_log,hc_flooding_log=[flooding],[hc_flooding]
-
+            flooding_log=[flooding]
+            #print('obtest=',observation)
             while True:
-                tema = self.choose_action_test(observation)
+                tema = self.choose_action(observation)
                 action = self.action_table[tema,:].tolist()
                 observation_, reward, done, info, flooding = self.env.step(action,self.testRainData[i])
-                
-                #对比HC,也记录HC每一步的flooding
-                _, hc_flooding = self.env.step_HC(hc_name)               
                 flooding_log.append(flooding)
-                hc_flooding_log.append(hc_flooding)
                 observation = observation_
+                X=np.random.uniform(0.95,1.05,size=observation.shape)
+                observation*=X
+                
                 if done:
                     break
             
             #一场降雨结束后记录一次flooding过程线
             flooding_logs.append(flooding_log)
-            hc_flooding_logs.append(hc_flooding_log)
             
-            #对比HC
-            #change_rain.copy_result('./test_result/HC/compare_tem_HC'+str(i)+'.inp',self.env.orf_rain+'.inp')#还原
-            #tem_etime=self.env.date_time[self.env.iten]
-            #set_datetime.set_date(self.env.sdate,self.env.edate,self.env.stime,tem_etime,'./test_result/HC/compare_tem_HC'+str(i)+'.inp')
-            #self.env.simulation('./test_result/HC/compare_tem_HC'+str(i)+'.inp')
-
             #save RLC .inp and .rpt
             if self.raindata=='test':
                 k=0
             else:
                 k=4
-            sout='./'+self.t+'_test_result/'+str(i+k)+'.rpt'
+            sout='./'+self.t+'_test_result/'+str(i+k)+' '+str(repeatid)+' '+'.rpt'
             sin=self.env.staf+'.rpt'
             self.env.copy_result(sout,sin)
-            sout='./'+self.t+'_test_result/'+str(i+k)+'.inp'
+            sout='./'+self.t+'_test_result/'+str(i+k)+' '+str(repeatid)+' '+'.inp'
             sin=self.env.staf+'.inp'
             self.env.copy_result(sout,sin)
-        #保存所有降雨的flooding过程线
-        df = pd.DataFrame(np.array(flooding_logs).T)
-        df.to_csv('./'+self.t+'_test_result/'+self.raindata+' '+self.t+'flooding_vs_t.csv', index=False, encoding='utf-8')
-        df = pd.DataFrame(np.array(hc_flooding_logs).T)
-        df.to_csv('./'+self.t+'_test_result/'+self.raindata+' '+self.t+'hc_flooding_vs_t.csv', index=False, encoding='utf-8')
-
+            #保存所有降雨的flooding过程线
+            df = pd.DataFrame(np.array(flooding_logs).T)
+            df.to_csv('./'+self.t+'_test_result/'+self.raindata+' '+str(repeatid)+' '+self.t+'flooding_vs_t.csv', index=False, encoding='utf-8')
+            
         return dr
     
+    def save_history(self, history, name):
+        df = pd.DataFrame.from_dict(history)
+        df.to_csv(name, index=False, encoding='utf-8')
     
-if __name__=='__main__':
-    
-    env = gym.make('Pendulum-v0')
-    env = env.unwrapped
-    #env = gym.make('CartPole-v0')
-    env.seed(1)
-    MEMORY_SIZE = 3000
-    ACTION_SPACE = 25
-    
-    #sess = tf.Session()
-    with tf.variable_scope('natural'):
-        natural_DQN = DDQN(
-            n_actions=ACTION_SPACE, n_features=3, memory_size=MEMORY_SIZE,
-            e_greedy_increment=0.001, dueling=False)
-    
-    with tf.variable_scope('dueling'):
-        dueling_DQN = DDQN(
-            n_actions=ACTION_SPACE, n_features=3, memory_size=MEMORY_SIZE,
-            e_greedy_increment=0.001, dueling=True, output_graph=True)
-    
-    #sess.run(tf.global_variables_initializer())
-    
-    c_natural, r_natural = natural_DQN.train()
-    c_dueling, r_dueling = dueling_DQN.train()
-    
-    plt.figure(1)
-    plt.plot(np.array(c_natural), c='r', label='natural')
-    plt.plot(np.array(c_dueling), c='b', label='dueling')
-    plt.legend(loc='best')
-    plt.ylabel('cost')
-    plt.xlabel('training steps')
-    plt.grid()
-    
-    plt.figure(2)
-    plt.plot(np.array(r_natural), c='r', label='natural')
-    plt.plot(np.array(r_dueling), c='b', label='dueling')
-    plt.legend(loc='best')
-    plt.ylabel('accumulated reward')
-    plt.xlabel('training steps')
-    plt.grid()
-    
-    plt.show()
