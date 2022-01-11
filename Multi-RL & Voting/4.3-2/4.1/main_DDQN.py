@@ -47,7 +47,7 @@ if __name__=='__main__':
         DQN1.load_model()
         #DQN1.train(True)
         for rid in range(20):
-            r2=DQN1.test(test_num,rid)
+            DQN1.test(test_num,rid)
     
 ################################################################################
     
@@ -62,5 +62,5 @@ if __name__=='__main__':
         DQN4.load_model()
         #DQN4.train(True)
         for rid in range(20):
-            r2=DQN4.test(test_num,rid)
+            DQN4.test(test_num,rid)
    

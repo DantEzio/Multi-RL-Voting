@@ -31,7 +31,7 @@ if __name__=='__main__':
         model1=A2C.A2C(MAX_EPISODE,MAX_EP_STEPS,num_rain,env,'test')
         model1.train(True)
         model1.load_model()
-        r=model1.test(test_num)
+        model1.test(test_num)
     
     
     env=env_SWMM.env_SWMM(date_time, date_t, AFI)
@@ -40,7 +40,7 @@ if __name__=='__main__':
         model2=A2C.A2C(MAX_EPISODE,MAX_EP_STEPS,num_rain,env,'real')
         #model2.train(True)
         model2.load_model()
-        r=model2.test(test_num)
+        model2.test(test_num)
     
     
     

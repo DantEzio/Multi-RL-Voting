@@ -31,13 +31,13 @@ if __name__=='__main__':
         DQN1 = DDQN.DDQN(step=step,batch_size=batch_size,num_rain=rain_num,env=env,t='dqn',raindata='test')
         DQN1.load_model()
         DQN1.train(True)
-        r2=DQN1.test(test_num)
+        DQN1.test(test_num)
     
     g_11 = tf.Graph()
     with g_11.as_default():
         dueling_DQN1 = DDQN.DDQN(step=step,batch_size=batch_size,num_rain=rain_num,env=env,t='dqn',raindata='real')
         dueling_DQN1.load_model()
-        r2=dueling_DQN1.test(test_num)
+        dueling_DQN1.test(test_num)
 
     batch_size=240
     step=5
@@ -49,11 +49,11 @@ if __name__=='__main__':
         DQN4 = DDQN.DDQN(step=step,batch_size=batch_size,num_rain=rain_num,env=env,t='ddqn', raindata='test')
         #DQN4.load_model()
         DQN4.train(True)
-        r2=DQN4.test(test_num)
+        DQN4.test(test_num)
     
     g_41 = tf.Graph()
     with g_41.as_default():
         dueling_DQN4 = DDQN.DDQN(step=step,batch_size=batch_size,num_rain=rain_num,env=env,t='ddqn',raindata='real')
         dueling_DQN4.load_model()
-        r2=dueling_DQN4.test(test_num)
+        dueling_DQN4.test(test_num)
     

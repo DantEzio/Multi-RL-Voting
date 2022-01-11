@@ -272,20 +272,3 @@ class PPO:
             df = pd.DataFrame(np.array(flooding_logs).T)
             df.to_csv('./'+self.t+'_test_result/'+self.raindata+' '+str(repeatid)+' '+self.t+'flooding_vs_t.csv', index=False, encoding='utf-8')
         
-
-    def save_history(self, history, name):
-        #name = os.path.join('history', name)
-
-        df = pd.DataFrame.from_dict(history)
-        df.to_csv(name, index=False, encoding='utf-8')
-
-
-if __name__ == '__main__':
-    '''
-    model1 = PPO(1000, 32, 'ppo1')
-    history = model1.train()
-    model1.save_history(history, 'ppo1.csv')
-    '''
-    model2 = PPO(1000, 32, 'ppo2')
-    history = model2.train()
-    model2.save_history(history, 'ppo2.csv')

@@ -180,8 +180,6 @@ class A2C(object):
 
 
     def test(self,test_num):
-        
-        dr=[]
         flooding_logs,hc_flooding_logs=[],[]
         for i in range(test_num):
             print('test'+str(i))
@@ -233,21 +231,4 @@ class A2C(object):
             df.to_csv('./'+self.t+'_test_result/'+self.raindata+' '+self.t+'flooding_vs_t.csv', index=False, encoding='utf-8')
             df = pd.DataFrame(np.array(hc_flooding_logs).T)
             df.to_csv('./'+self.t+'_test_result/'+self.raindata+' '+self.t+'hc_flooding_vs_t.csv', index=False, encoding='utf-8')
-        return dr
             
-            
-
-if __name__=='__main__':
-    # Superparameters
-    OUTPUT_GRAPH = False # 是否保存模型（网络结构）
-    MAX_EPISODE = 100
-    DISPLAY_REWARD_THRESHOLD = 200  # renders environment if total episode reward is greater then this threshold
-    MAX_EP_STEPS = 100000   # maximum time step in one episode
-    RENDER = True  # rendering wastes time
-    GAMMA = 0.9     # reward discount in TD error
-    LR_A = 0.1    # learning rate for actor
-    LR_C = 0.1     # learning rate for critic
-    
-    env = gym.make('MountainCar-v0')
-    model=A2C(MAX_EPISODE,MAX_EP_STEPS,env)
-    model.train()

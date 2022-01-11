@@ -42,7 +42,7 @@ if __name__=='__main__':
         model3.load_model()
         #history = model3.train(True)
         for rid in range(20):
-            r=model3.test(test_num,rid)
+            model3.test(test_num,rid)
     
     env=env_SWMM.env_SWMM(date_time, date_t,AFI)
     g_4 = tf.Graph()
@@ -51,6 +51,6 @@ if __name__=='__main__':
         model4.load_model()
         #history = model4.train(True)
         for rid in range(20):
-            r=model4.test(test_num,rid)
+            model4.test(test_num,rid)
 
     

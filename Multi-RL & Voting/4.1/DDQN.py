@@ -207,8 +207,6 @@ class DDQN:
         saver.restore(self.sess,'./'+self.t+'_test_result/model/'+self.t+'_model.ckpt')
             
     def test(self,test_num):
-        
-        dr=[]
         flooding_logs,hc_flooding_logs=[],[]
         for i in range(test_num):
             print('test',i)
@@ -261,49 +259,4 @@ class DDQN:
         df.to_csv('./'+self.t+'_test_result/'+self.raindata+' '+self.t+'flooding_vs_t.csv', index=False, encoding='utf-8')
         df = pd.DataFrame(np.array(hc_flooding_logs).T)
         df.to_csv('./'+self.t+'_test_result/'+self.raindata+' '+self.t+'hc_flooding_vs_t.csv', index=False, encoding='utf-8')
-
-        return dr
     
-    
-if __name__=='__main__':
-    
-    env = gym.make('Pendulum-v0')
-    env = env.unwrapped
-    #env = gym.make('CartPole-v0')
-    env.seed(1)
-    MEMORY_SIZE = 3000
-    ACTION_SPACE = 25
-    
-    #sess = tf.Session()
-    with tf.variable_scope('natural'):
-        natural_DQN = DDQN(
-            n_actions=ACTION_SPACE, n_features=3, memory_size=MEMORY_SIZE,
-            e_greedy_increment=0.001, dueling=False)
-    
-    with tf.variable_scope('dueling'):
-        dueling_DQN = DDQN(
-            n_actions=ACTION_SPACE, n_features=3, memory_size=MEMORY_SIZE,
-            e_greedy_increment=0.001, dueling=True, output_graph=True)
-    
-    #sess.run(tf.global_variables_initializer())
-    
-    c_natural, r_natural = natural_DQN.train()
-    c_dueling, r_dueling = dueling_DQN.train()
-    
-    plt.figure(1)
-    plt.plot(np.array(c_natural), c='r', label='natural')
-    plt.plot(np.array(c_dueling), c='b', label='dueling')
-    plt.legend(loc='best')
-    plt.ylabel('cost')
-    plt.xlabel('training steps')
-    plt.grid()
-    
-    plt.figure(2)
-    plt.plot(np.array(r_natural), c='r', label='natural')
-    plt.plot(np.array(r_dueling), c='b', label='dueling')
-    plt.legend(loc='best')
-    plt.ylabel('accumulated reward')
-    plt.xlabel('training steps')
-    plt.grid()
-    
-    plt.show()

@@ -214,7 +214,6 @@ class DDQN:
     
     def test(self,test_num,repeatid):
         
-        dr=[]
         flooding_logs=[]
         for i in range(test_num):
             print('repeat: ', repeatid,' test: ',i)
@@ -254,8 +253,7 @@ class DDQN:
             #保存所有降雨的flooding过程线
             df = pd.DataFrame(np.array(flooding_logs).T)
             df.to_csv('./'+self.t+'_test_result/'+self.raindata+' '+str(repeatid)+' '+self.t+'flooding_vs_t.csv', index=False, encoding='utf-8')
-            
-        return dr
+
     
     def save_history(self, history, name):
         df = pd.DataFrame.from_dict(history)

@@ -30,13 +30,13 @@ if __name__=='__main__':
         model3 = PPO.PPO(env,step, 240, num_rain, 'ppo1', raindata='test')
         model3.load_model()
         model3.train(True)
-        r=model3.test(test_num)
+        model3.test(test_num)
     
     g_31 = tf.Graph()
     with g_31.as_default():
         model3 = PPO.PPO(env,step, 240, num_rain, 'ppo1',raindata='real')
         model3.load_model()
-        r=model3.test(test_num)
+        model3.test(test_num)
     
     env=env_SWMM.env_SWMM(date_time, date_t,AFI)
     g_4 = tf.Graph()
@@ -44,12 +44,12 @@ if __name__=='__main__':
         model4 = PPO.PPO(env,step, 240, num_rain, 'ppo2',raindata='test')
         model4.load_model()
         model4.train(True)
-        r=model4.test(test_num)
+        model4.test(test_num)
     
     g_41 = tf.Graph()
     with g_41.as_default():    
         model4 = PPO.PPO(env,step, 240, num_rain, 'ppo2', raindata='real')
         model4.load_model()
-        r=model4.test(test_num)
+        model4.test(test_num)
 
     

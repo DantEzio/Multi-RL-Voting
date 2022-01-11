@@ -223,7 +223,6 @@ class PPO:
         saver.restore(self.sess,'./'+self.t+'_test_result/model/'+self.t+'_model.ckpt')
     
     def test(self,test_num):
-        dr=[]
         flooding_logs,hc_flooding_logs=[],[]
         for i in range(test_num):
             print('test'+str(i))
@@ -292,15 +291,3 @@ class PPO:
             df.to_csv('./'+self.t+'_test_result/'+self.raindata+' '+self.t+'flooding_vs_t.csv', index=False, encoding='utf-8')
             df = pd.DataFrame(np.array(hc_flooding_logs).T)
             df.to_csv('./'+self.t+'_test_result/'+self.raindata+' '+self.t+'hc_flooding_vs_t.csv', index=False, encoding='utf-8')
-        return dr
-
-
-if __name__ == '__main__':
-    '''
-    model1 = PPO(1000, 32, 'ppo1')
-    history = model1.train()
-    model1.save_history(history, 'ppo1.csv')
-    '''
-    model2 = PPO(1000, 32, 'ppo2')
-    history = model2.train()
-    model2.save_history(history, 'ppo2.csv')

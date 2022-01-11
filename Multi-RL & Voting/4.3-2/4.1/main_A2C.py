@@ -52,7 +52,7 @@ if __name__=='__main__':
         #history=model1.train(True)
         model1.load_model()
         for rid in range(20):
-            r=model1.test(test_num,rid)
+            model1.test(test_num,rid)
     
     
     
