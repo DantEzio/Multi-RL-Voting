@@ -238,7 +238,3 @@ class A2C(object):
             df = pd.DataFrame(np.array(flooding_logs).T)
             df.to_csv('./'+self.t+'_test_result/'+self.raindata+' '+str(repeatid)+' '+self.t+'flooding_vs_t.csv', index=False, encoding='utf-8')
     
-    def save_history(self, history, name):
-    
-        df = pd.DataFrame.from_dict(history)
-        df.to_csv(name, index=False, encoding='utf-8')
